@@ -17,6 +17,7 @@ func loadSequence(fn string) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	content, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
