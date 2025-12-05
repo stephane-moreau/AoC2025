@@ -47,9 +47,6 @@ func loadData(fn string) ([]idRange, []int64, error) {
 			ranges = append(ranges, idRange{
 				id1, id2,
 			})
-			if id1 > id2 {
-				panic("wtf")
-			}
 			continue
 		}
 		ids = append(ids, id1)
