@@ -43,26 +43,26 @@ func countSplits(g grid) (int, int) {
 			start = point{i, 0}
 		}
 	}
-	beams := map[point]int{
-		start: 1,
-	}
+	beams := make(map[point]int, 5000)
+	beams[start] = 1
 	for y := range len(g) - 1 {
-		newBeams := make(map[point]int)
 		for x := range g[y] {
 			if b := beams[point{x, y}]; b != 0 {
 				if g[y][x] == '^' {
 					c++
-					newBeams[point{x - 1, y + 1}] += b
-					newBeams[point{x + 1, y + 1}] += b
+					beams[point{x - 1, y + 1}] += b
+					beams[point{x + 1, y + 1}] += b
 				} else {
-					newBeams[point{x, y + 1}] += b
+					beams[point{x, y + 1}] += b
 				}
 			}
 		}
-		beams = newBeams
 	}
 	b := 0
-	for _, v := range beams {
+	for k, v := range beams {
+		if k.y != len(g)-1 {
+			continue
+		}
 		b += v
 	}
 	return c, b
