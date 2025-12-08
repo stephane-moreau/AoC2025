@@ -1,6 +1,7 @@
 package day8
 
 import (
+	"maps"
 	"sort"
 	"testing"
 
@@ -55,12 +56,20 @@ nextCircuit:
 	return circuits
 }
 
-func findCircuits(cnx []connection, num int) ([]circuit, connection) {
+func findCircuits(cnx []connection, snapshot int, num int) ([]circuit, connection) {
 	circuits := make([]circuit, 0)
+	var crcSnap []circuit
 nextEdge:
 	for l, c := range cnx {
+		if l == snapshot {
+			crcSnap = make([]circuit, len(circuits))
+			for i := range circuits {
+				crcSnap[i] = maps.Clone(circuits[i])
+			}
+			crcSnap = mergeCircuits(crcSnap)
+		}
 		if len(circuits) == 1 && len(circuits[0]) == num {
-			return circuits, cnx[l-1]
+			return crcSnap, cnx[l-1]
 		}
 		for i := range circuits {
 			if circuits[i][c.start] {
@@ -85,21 +94,18 @@ nextEdge:
 		})
 	}
 	// merge existing circuits
-	circuits = mergeCircuits(circuits)
-	return circuits, connection{}
+	return crcSnap, connection{}
 }
 
 func TestDay8(t *testing.T) {
 	g := buildConnections(light)
 	require.NotNil(t, g)
-	crc, _ := findCircuits(g[:10], len(light))
+	crc, last := findCircuits(g, 10, len(light))
 	assert.Equal(t, 40, len(crc[0])*len(crc[1])*len(crc[2]))
-	_, last := findCircuits(g, len(light))
 	assert.Equal(t, 25272, last.start.x*last.end.x)
 	g = buildConnections(large)
 	require.NotNil(t, g)
-	crc, _ = findCircuits(g[:1000], len(large))
+	crc, last = findCircuits(g, 1000, len(large))
 	assert.Equal(t, 67488, len(crc[0])*len(crc[1])*len(crc[2]))
-	_, last = findCircuits(g, len(large))
 	assert.Equal(t, 3767453340, last.start.x*last.end.x)
 }
