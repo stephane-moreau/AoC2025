@@ -28,12 +28,6 @@ func buildConnections(input []point) []connection {
 
 type circuit map[point]bool
 
-var checkPoints = map[point]bool{
-	{84314, 61210, 54625}: true,
-	{84358, 62436, 51394}: true,
-	{85096, 62446, 58342}: true,
-}
-
 func mergeCircuits(circuits []circuit) []circuit {
 nextCircuit:
 	for i := 0; i < len(circuits); i++ {
