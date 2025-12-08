@@ -59,7 +59,6 @@ func findCircuits(cnx []connection, num int) ([]circuit, connection) {
 	circuits := make([]circuit, 0)
 nextEdge:
 	for l, c := range cnx {
-		circuits = mergeCircuits(circuits)
 		if len(circuits) == 1 && len(circuits[0]) == num {
 			return circuits, cnx[l-1]
 		}
@@ -69,6 +68,7 @@ nextEdge:
 					continue nextEdge
 				}
 				circuits[i][c.end] = true
+				circuits = mergeCircuits(circuits)
 				continue nextEdge
 			}
 			if circuits[i][c.end] {
