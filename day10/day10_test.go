@@ -139,11 +139,11 @@ func solveButtonPress(lgt light) int {
 		}
 	}
 
-	mtrx, preRes, ts := triangularize(mtrx, nil)
+	mtrx, preRes, varIndex := triangularize(mtrx, nil)
 
-	if ts != 0 {
+	if len(varIndex) != 0 {
 		// Solve all single var
-		s := dynSolve(mtrx, preRes, ts)
+		s := dynSolve(mtrx, preRes, varIndex)
 		if s == 0 {
 			fmt.Printf("%v\n", lgt)
 			return 0
@@ -217,6 +217,26 @@ func TestOneLineIterSolver(t *testing.T) {
 	assert.Equal(t, 78, solveButtonPress(l))
 }
 
+func TestOneLineIterSolverSpeed(t *testing.T) {
+	l := light{
+		target:  "##.....###",
+		buttons: [][]int{{0, 2, 4, 5, 7, 8, 9}, {0, 6, 8}, {2, 7, 9}, {0, 4, 6, 8, 9}, {0, 4, 7, 8, 9}, {0, 1, 2, 3, 4, 5, 6, 9}, {0, 1, 2, 6, 7, 8}, {1, 2, 4, 5}, {2, 3, 6, 7, 9}, {0, 2, 3, 5, 6, 7, 8, 9}, {4, 5, 6, 7, 8, 9}, {0, 1, 3, 4, 5, 8, 9}, {1, 2, 3, 4, 6, 7, 8, 9}},
+		vals:    []int{75, 73, 86, 62, 102, 61, 86, 58, 79, 106},
+	}
+	// 11, 5, 10, 17, 0, 27, 5, 7, 0, 1, 6, 9, 25
+	assert.Equal(t, 123, solveButtonPress(l))
+}
+
+func TestOneLineIterSolverLarge(t *testing.T) {
+	l := light{
+		target:  "...#",
+		buttons: [][]int{{0, 3}, {0, 1}, {2, 3}, {0, 2, 3}, {1, 3}, {2}},
+		vals:    []int{21, 190, 34, 216},
+	}
+	// 0, 8, 21, 13, 182, 0
+	assert.Equal(t, 224, solveButtonPress(l))
+}
+
 func TestOneLineIterSolver2(t *testing.T) {
 	l := light{
 		target: "##.#.###..",
@@ -226,7 +246,8 @@ func TestOneLineIterSolver2(t *testing.T) {
 		},
 		vals: []int{44, 30, 37, 16, 49, 27, 23, 22, 40, 36},
 	}
-	assert.Equal(t, 97, solveButtonPress(l))
+	// [12, 3, 7, 9, 5, 0, 8, 13, 6, 1, 6, 5]
+	assert.Equal(t, 75, solveButtonPress(l))
 }
 
 func TestDay10(t *testing.T) {
@@ -242,5 +263,6 @@ func TestDay10(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 538, computeButtonPress(lights))
 	assert.Equal(t, 17716, sumHighest(lights)) // to low (obviously)
-	assert.Equal(t, 20298, solveVoltage(lights))
+	// 20298 too high
+	assert.Equal(t, 20093, solveVoltage(lights))
 }

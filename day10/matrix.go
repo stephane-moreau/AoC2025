@@ -43,18 +43,20 @@ func clone(mtrx matrix) matrix {
 	return newMtrx
 }
 
-func triangleSize(mtrx matrix) int {
-	for m := 1; m < len(mtrx); m++ {
-		for j := 0; j < m; j++ {
-			if mtrx[m][j] != 0 {
-				return len(mtrx[0]) - j
+func findNonSolvedIndexes(mtrx matrix) []int {
+	varIndex := make([]int, 0)
+	for c := 0; c < len(mtrx[0])-1; c++ {
+		countNonNil := 0
+		for j := 0; j < len(mtrx); j++ {
+			if mtrx[j][c] != 0 {
+				countNonNil++
 			}
 		}
-		if mtrx[m][m] == 0 {
-			return len(mtrx[0]) - 1 - m
+		if countNonNil > 1 {
+			varIndex = append(varIndex, c)
 		}
 	}
-	return len(mtrx[0]) - 1 - len(mtrx)
+	return varIndex
 }
 
 func removeEmptyLines(mtrx matrix) (matrix, bool) {
@@ -128,7 +130,8 @@ func apply(mtrx matrix, res []int) (matrix, []int, bool) {
 	return newmtrx, newRes, len(newmtrx) == 0 && newRes != nil
 }
 
-func triangularize(mtrx matrix, knownRes []int) (matrix, []int, int) {
+func triangularize(mtrx matrix, knownRes []int) (matrix, []int, []int) {
+	// Move as close as possible to upper triangular
 	for l := range mtrx {
 		sort.SliceStable(mtrx[l:], func(i, j int) bool {
 			return abs(mtrx[i+l][l]) > abs(mtrx[j+l][l])
@@ -145,6 +148,41 @@ func triangularize(mtrx matrix, knownRes []int) (matrix, []int, int) {
 			}
 		}
 	}
+	if knownRes == nil {
+		// top down diagonalization
+		for l := range mtrx {
+
+			for firstNonZero := l + 1; firstNonZero < len(mtrx[l])-1; firstNonZero++ {
+				if mtrx[l][firstNonZero] == 0 {
+					continue
+				}
+
+				lineNdx := l + 1
+			cancelLine:
+				for ; lineNdx < len(mtrx); lineNdx++ {
+					if mtrx[lineNdx][firstNonZero] == 0 {
+						continue
+					}
+
+					for j := 0; j < firstNonZero; j++ {
+						if mtrx[lineNdx][j] != 0 {
+							continue cancelLine
+						}
+					}
+					break
+				}
+				if lineNdx == len(mtrx) {
+					continue
+				}
+
+				// multiply line l by line[firstNonZero] and remove mtrx[l][firstNonZero]*line[o]
+				d := mtrx[l][firstNonZero]
+				for o := 0; o < len(mtrx[l]); o++ {
+					mtrx[l][o] = mtrx[l][o]*mtrx[lineNdx][firstNonZero] - d*mtrx[lineNdx][o]
+				}
+			}
+		}
+	}
 notEmpty:
 	for i := len(mtrx) - 1; i >= 0; i-- {
 		for _, c := range mtrx[i] {
@@ -155,9 +193,9 @@ notEmpty:
 		mtrx = mtrx[:len(mtrx)-1]
 	}
 
-	ts := triangleSize(mtrx)
-	if ts == 0 {
-		return mtrx, nil, 0
+	varIndex := findNonSolvedIndexes(mtrx)
+	if len(varIndex) == 0 {
+		return mtrx, nil, nil
 	}
 	var res []int
 	if knownRes != nil {
@@ -170,10 +208,12 @@ notEmpty:
 	}
 	// solve all proportionnal values
 	mtrx, res = solveProportionalLines(mtrx, res)
-	return mtrx, res, ts
+	return mtrx, res, varIndex
 }
 
-func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int) (int, bool) {
+const MAX_TEST = 200
+
+func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int, maxSearch int) (int, bool) {
 	resNdx := len(mtrx[0]) - 1
 	curSum := sum(res)
 	var localMin int
@@ -189,8 +229,8 @@ func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int) (int
 		if res == nil {
 			return 0, false
 		}
-		mtrx, newRes, ts := triangularize(newMtrx, res)
-		if ts != 0 {
+		mtrx, newRes, _v := triangularize(newMtrx, res)
+		if len(_v) != 0 || newRes == nil {
 			return 0, false
 		}
 		for m := len(mtrx) - 1; m >= 0; m-- {
@@ -206,12 +246,12 @@ func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int) (int
 	}
 
 	var found1Sol bool
-	for resTest := 0; resTest <= abs(mtrx[len(mtrx)-1][resNdx])+1; resTest++ {
+	for resTest := 0; resTest <= maxSearch; resTest++ {
 		if resTest+curSum > *minRes {
 			return *minRes, found1Sol
 		}
 		res[varIndexes[0]] = resTest
-		r, ok := iterativeSolver(mtrx, res, varIndexes[1:], minRes)
+		r, ok := iterativeSolver(mtrx, res, varIndexes[1:], minRes, maxSearch)
 		if ok {
 			found1Sol = true
 			if *minRes > r {
@@ -223,20 +263,12 @@ func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int) (int
 	return *minRes, found1Sol
 }
 
-func dynSolve(mtrx matrix, knownRes []int, varCount int) int {
-	varIndexes := make([]int, 0, varCount)
-	for i := len(knownRes) - 1; i >= 0; i-- {
-		if knownRes[i] == -1 {
-			varIndexes = append(varIndexes, i)
-			if len(varIndexes) == varCount {
-				break
-			}
+func dynSolve(mtrx matrix, knownRes []int, varIndex []int) int {
+	for maxSearch := 25; maxSearch <= MAX_TEST; maxSearch += 25 {
+		s, ok := iterativeSolver(mtrx, knownRes, varIndex, nil, maxSearch)
+		if ok {
+			return s
 		}
 	}
-
-	s, ok := iterativeSolver(mtrx, knownRes, varIndexes, nil)
-	if !ok {
-		return 0
-	}
-	return s
+	return 0
 }
