@@ -172,13 +172,7 @@ func solveButtonPress(lgt light) int {
 
 func solveVoltage(lights []light) int {
 	c := 0
-	for i, l := range lights {
-		if i%10 == 9 {
-			print("#")
-		}
-		if i%10 == 49 {
-			println("")
-		}
+	for _, l := range lights {
 		s := solveButtonPress(l)
 		c += s
 	}
@@ -237,6 +231,24 @@ func TestOneLineIterSolverLarge(t *testing.T) {
 	assert.Equal(t, 224, solveButtonPress(l))
 }
 
+func TestOneLineBugs(t *testing.T) {
+	l := light{
+		target:  "#.#.#.#",
+		buttons: [][]int{{0, 2, 3, 5}, {0, 3}, {1, 6}, {0, 2, 4, 6}, {0, 1, 2, 3, 5, 6}, {2, 6}, {0, 3, 4, 6}, {1, 2, 3, 5, 6}},
+		vals:    []int{20, 21, 37, 28, 12, 19, 40},
+	}
+	// 0, 8, 2, 11, 0, 7, 1, 19
+	assert.Equal(t, 48, solveButtonPress(l))
+
+	l = light{
+		target:  "##..#####",
+		buttons: [][]int{{1, 3, 7}, {1, 5, 6, 7}, {0, 2, 3, 5, 7, 8}, {0, 1, 2, 3, 4, 5, 7, 8}, {0, 1, 4, 5, 6, 7, 8}, {4, 5, 6, 7, 8}, {0, 2, 3, 4, 6, 7, 8}, {4, 7, 8}, {0, 1, 2, 3, 4, 5, 8}, {1, 6}, {1, 2, 4, 5, 7, 8}},
+		vals:    []int{59, 105, 73, 73, 93, 92, 51, 124, 103},
+	}
+	// 31, 4, 10, 4, 17, 12, 14, 1, 14, 4, 31
+	assert.Equal(t, 142, solveButtonPress(l))
+}
+
 func TestOneLineIterSolver2(t *testing.T) {
 	l := light{
 		target: "##.#.###..",
@@ -263,6 +275,5 @@ func TestDay10(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 538, computeButtonPress(lights))
 	assert.Equal(t, 17716, sumHighest(lights)) // to low (obviously)
-	// 20298 too high
-	assert.Equal(t, 20093, solveVoltage(lights))
+	assert.Equal(t, 20298, solveVoltage(lights))
 }

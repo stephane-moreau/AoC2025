@@ -264,7 +264,13 @@ func iterativeSolver(mtrx matrix, res []int, varIndexes []int, minRes *int, maxS
 }
 
 func dynSolve(mtrx matrix, knownRes []int, varIndex []int) int {
-	for maxSearch := 25; maxSearch <= MAX_TEST; maxSearch += 25 {
+	for v := len(varIndex) - 1; v >= 0; v-- {
+		if knownRes[varIndex[v]] != -1 {
+			varIndex = append(varIndex[:v], varIndex[v+1:]...)
+		}
+	}
+	maxSearch := MAX_TEST / len(varIndex)
+	for ; maxSearch <= MAX_TEST; maxSearch += 25 {
 		s, ok := iterativeSolver(mtrx, knownRes, varIndex, nil, maxSearch)
 		if ok {
 			return s
